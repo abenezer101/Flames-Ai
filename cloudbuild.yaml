@@ -1,0 +1,39 @@
+steps:
+# 1. Install Monorepo Dependencies
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['install']
+  id: 'Install Dependencies'
+
+# 2. Build the Backend Service
+# This step assumes the Dockerfile is at the root.
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+      'build',
+      '-t', 'gcr.io/$PROJECT_ID/flames-backend:$COMMIT_SHA',
+      '.' # Use the monorepo root as the build context
+    ]
+  id: 'Build Backend Image'
+
+# 3. Push the container image to Google Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/flames-backend:$COMMIT_SHA']
+  id: 'Push Backend Image'
+
+# 4. Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: [
+      'run', 'deploy', 'flames-backend', // Service name
+      '--image', 'gcr.io/$PROJECT_ID/flames-backend:$COMMIT_SHA',
+      '--region', 'us-central1', // TODO: Make this a variable
+      '--platform', 'managed',
+      '--allow-unauthenticated', // WARNING: For demo purposes. Use --no-allow-unauthenticated in production.
+      '--project', '$PROJECT_ID'
+    ]
+  id: 'Deploy to Cloud Run'
+
+images:
+- 'gcr.io/$PROJECT_ID/flames-backend:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

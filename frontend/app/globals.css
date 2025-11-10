@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Additional global styles can go here */
+body {
+  @apply bg-base-100 text-base-content;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* For the glass theme */
+.theme-glass {
+  backdrop-filter: blur(10px);
+}
+
+.rainbow-border {
+  position: relative;
+  border-radius: 28px;
+}
+
+.rainbow-border::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 30px;
+  background: conic-gradient(
+    from 0deg,
+    #3b82f6,
+    #8b5cf6,
+    #ec4899,
+    #3b82f6
+  );
+  z-index: 0;
+  -webkit-mask: radial-gradient(circle, transparent 0%, transparent calc(100% - 2px), black calc(100% - 2px));
+  mask: radial-gradient(circle, transparent 0%, transparent calc(100% - 2px), black calc(100% - 2px));
+}
+
+.rainbow-border::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 36px;
+  background: conic-gradient(
+    from 0deg,
+    #3b82f6,
+    #8b5cf6,
+    #ec4899,
+    #3b82f6
+  );
+  filter: blur(20px);
+  opacity: 0.3;
+  z-index: -1;
+}
+
+.rainbow-border > div {
+  position: relative;
+  z-index: 1;
+  border-radius: 24px;
+}
+
+.rainbow-border-button {
+  position: relative;
+  border-radius: 9999px;
+}
+
+.rainbow-border-button::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 0deg,
+    #3b82f6,
+    #8b5cf6,
+    #ec4899,
+    #3b82f6
+  );
+  z-index: 0;
+  -webkit-mask: radial-gradient(circle, transparent 0%, transparent calc(100% - 2px), black calc(100% - 2px));
+  mask: radial-gradient(circle, transparent 0%, transparent calc(100% - 2px), black calc(100% - 2px));
+}
+
+.rainbow-border-button::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 0deg,
+    #3b82f6,
+    #8b5cf6,
+    #ec4899,
+    #3b82f6
+  );
+  filter: blur(15px);
+  opacity: 0.4;
+  z-index: -1;
+}
+
+.rainbow-border-button > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes animate-rainbow {
+  0% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+  100% {
+    background-position: 0% center;
+  }
+}
