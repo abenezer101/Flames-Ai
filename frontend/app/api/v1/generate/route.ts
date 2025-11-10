@@ -5,7 +5,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Call the backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+    console.log(`Forwarding request to backend at: ${backendUrl}`); // Added for debugging
     
     const response = await fetch(`${backendUrl}/api/v1/generate`, {
       method: 'POST',

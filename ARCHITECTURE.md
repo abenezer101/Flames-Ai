@@ -1,6 +1,55 @@
-## Flames - System Architecture Diagram (Text-Based)
+# 🔥 Flames - System Architecture
 
-This diagram outlines the major components and data flows of the Flames application.
+This document outlines the major components and data flows of the Flames application, an AI-powered tool that generates and deploys web applications from natural language prompts.
+
+## Core Philosophy
+
+Flames is built on a modern, scalable, microservices-style architecture. The frontend (the user's interface and in-browser IDE) is completely decoupled from the backend (the AI orchestration and code generation engine). This separation allows for independent development, scaling, and deployment. The entire system is designed to run in a serverless environment on Google Cloud.
+
+## Architecture Diagrams
+
+### Modern Diagram (Mermaid)
+
+The following diagram illustrates the relationship between the user, the frontend service, the backend service, and the supporting Google Cloud infrastructure. It should render as a graph in most modern Markdown viewers.
+
+```mermaid
+graph TD
+    subgraph User Browser
+        A[Next.js Frontend on Cloud Run]
+    end
+
+    subgraph Backend Services
+        B[Node.js/Express Backend on Cloud Run]
+        C[Google Gemini API]
+    end
+
+    subgraph Google Cloud Platform
+        D[Firestore]
+        E[Cloud Storage]
+    end
+
+    A -- "1. POST /api/v1/generate (User Prompt)" --> B
+    B -- "2. Create Job Document" --> D[Firestore]
+    B -- "3. Build Prompt & Call AI" --> C
+    C -- "4. Return File Modifications" --> B
+    B -- "5. Apply modifications to template files" --> B
+    B -- "6. Update Job Status to 'Generated'" --> D
+
+    A -- "7. Polls /api/v1/job/:id for status" --> B
+    B -- "Reads Job Status" --> D
+    A -- "8. GET /api/v1/job/:id/files (once generated)" --> B
+
+    style A fill:#222,stroke:#3dd,stroke-width:2px
+    style B fill:#222,stroke:#fd3,stroke-width:2px
+    style C fill:#333,stroke:#ccc,stroke-width:1px
+    style D fill:#333,stroke:#ccc,stroke-width:1px
+    style E fill:#333,stroke:#ccc,stroke-width:1px
+```
+
+### Classic Diagram (Text-Based)
+
+<details>
+<summary>Click to view the original text-based diagram</summary>
 
 ```
 +--------------------------------------------------------------------+
@@ -35,21 +84,38 @@ This diagram outlines the major components and data flows of the Flames applicat
 +--------------------------------------------------------------------+
 
 ```
+</details>
 
-### Flows:
+## Component Breakdown
 
-1.  **Generation Flow:**
-    - User enters a prompt in the **Frontend**.
-    - Frontend sends a `POST /api/v1/generate` request to the **Backend API**.
-    - Backend creates a job in **Firestore** and triggers the **Generation Worker**.
-    - The worker fetches a template, modifies it, packages it into a `.tar.gz` artifact, and uploads it to **Cloud Storage**.
-    - The worker updates the job status in **Firestore**.
+-   **Frontend (Next.js on Cloud Run)**: The user's complete interface. It's a powerful client-side application that provides an IDE-like experience, including a file explorer, code editor, terminal, and a WebContainer-based live preview. It is responsible for all UI rendering and state management.
 
-2.  **Deployment Flow:**
-    - User clicks "Deploy" in the **Frontend**.
-    - Frontend sends a `POST /api/v1/deploy` request.
-    - **Backend API** authenticates and validates the request.
-    - Backend makes an API call to **Cloud Build**, pointing to the artifact in **Cloud Storage**.
-    - **Cloud Build** pulls the artifact, builds the Docker image, and pushes it to Google Container Registry.
-    - **Cloud Build** then issues a command to deploy the new image to a new or existing **Cloud Run** service.
-    - **Cloud Build** sends a notification to the `/webhook/cloudbuild` endpoint on the **Backend API**, which updates the deployment status in **Firestore**.
+-   **Backend (Node.js/Express on Cloud Run)**: The stateless "brain" of the operation. Its sole responsibility is to handle API requests from the frontend. It manages the AI interaction, file system operations, and job status updates. It has no frontend rendering logic.
+
+-   **Google Gemini API**: The external generative AI service that takes a detailed prompt (including template files and user instructions) and returns structured JSON describing the necessary code modifications.
+
+-   **Firestore**: A NoSQL database used to store and manage the state of each generation `job`. The frontend polls this database (via the backend) to know when the code generation is complete.
+
+-   **Cloud Storage**: Used as a durable object store for application artifacts, such as the `.tar.gz` packages of generated code, although this is less critical for the interactive generation flow.
+
+## Detailed Flows
+
+### 1. Code Generation Flow (The Core Loop)
+
+1.  **User Submits Prompt**: The user types a description of the application they want to build into the **Frontend** UI.
+2.  **Initiate Generation**: The **Frontend** sends a `POST /api/v1/generate` request to the **Backend API**, containing the user's prompt.
+3.  **Job Creation**: The **Backend** creates a new job document in **Firestore** with a unique ID and a `processing` status.
+4.  **AI Invocation**: The **Backend** constructs a detailed prompt for the **Gemini API**. This prompt includes system instructions, the user's request, and the contents of a base template project.
+5.  **Receive Modifications**: The **Gemini API** processes the request and returns a JSON object containing an array of file modifications (e.g., `CREATE_FILE`, `REPLACE_CONTENT`).
+6.  **Apply Changes**: The **Backend** applies these modifications to a temporary copy of the template files in its local file system.
+7.  **Finalize Job**: The **Backend** updates the job's status in **Firestore** to `generated`.
+8.  **Fetch & Display**: The **Frontend**, which has been polling the job status endpoint, sees the `generated` status. It then makes a final request to the **Backend** to fetch the complete tree of generated files, which are then displayed in the file explorer and code editor.
+
+### 2. Deployment Flow (As Implemented)
+
+The current deployment process is handled manually via the `gcloud` CLI, providing a robust and direct path to production on Google Cloud Run.
+
+1.  **Containerization**: The `Dockerfile` in the root and the `frontend/Dockerfile` are used by **Google Cloud Build** to package the backend and frontend services into immutable container images.
+2.  **Backend Deployment**: An administrator runs `gcloud builds submit` and `gcloud run deploy` for the backend service. This creates a live, public URL for the API.
+3.  **Frontend Deployment**: The administrator runs `gcloud builds submit` for the frontend. Then, they run `gcloud run deploy`, passing the backend's public URL as an environment variable (`NEXT_PUBLIC_API_BASE_URL`). This securely connects the two services.
+4.  **Live Application**: Cloud Run manages both services, scaling them up and down as needed. The frontend serves the UI to users, and it makes API calls to the backend's public endpoint.

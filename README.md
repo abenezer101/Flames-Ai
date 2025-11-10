@@ -1,59 +1,111 @@
-# Flames: AI-Powered Cloud Run App Generator
+<div align="center">
+  <img src="public/images/flames-logo.png" alt="Flames Logo" width="200"/>
+  <h1>🔥 Flames AI</h1>
+  <p><b>Your AI-powered partner for building and deploying web applications on the fly.</b></p>
+</div>
 
-This repository contains the full-stack application for **Flames**, a web tool that converts natural-language specifications into runnable, deployable web applications on Google Cloud Run.
+---
 
-## Project Status
+Flames is a generative AI application that creates entire web applications from a single prompt. Describe the app you want to build, and watch as Flames writes the code, structures the files, and prepares it for deployment. It features a comprehensive in-browser IDE, including a file explorer, code editor, and live preview, allowing you to iterate and modify your creation with AI assistance.
 
-**Status:** Initial scaffold complete. Core UI, backend API, and deployment infrastructure are in place. Ready for feature implementation and testing.
+## ✨ Key Features
 
-## Getting Started (Local Development)
+-   **AI-Powered Code Generation**: Leverages Google's Gemini 2.5 Pro to generate React applications based on a simple prompt.
+-   **In-Browser IDE**: A complete development environment in your browser, featuring:
+    -   A **chat interface** to communicate with the AI.
+    -   A **file explorer** to navigate the generated project.
+    -   A **live code editor** (Monaco) to view and modify the code.
+-   **Live Previews**: Uses WebContainers to instantly boot up the generated React app for a real-time preview.
+-   **Iterative Development**: Chat with the AI assistant to request changes and watch it modify the code in real-time.
+-   **Cloud-Native Architecture**: Built as a scalable, two-part system (frontend and backend) designed for serverless platforms.
+-   **One-Click Deployment**: (Future-proof) The architecture is set up for easy deployment to Google Cloud Run.
 
-**Prerequisites:**
-- Node.js (v18+)
-- npm (or yarn/pnpm)
-- Docker Desktop
-- `gcloud` CLI (authenticated to a Google Cloud project)
+## 🚀 How It Works
 
-1.  **Clone & Install:**
+Flames operates as a sophisticated monorepo with two primary services:
+
+1.  **The Frontend (`/frontend`)**: A Next.js application that provides the entire user experience. It's the user's window into the generation process, allowing them to issue prompts, view the results, and interact with the generated application.
+2.  **The Backend (`/backend`)**: A Node.js and Express server that acts as the brain. It receives requests from the frontend, constructs detailed prompts for the Gemini API, processes the AI's response, and manages the file generation and modification logic. Job statuses and artifacts are managed using Google Firestore and Cloud Storage.
+
+The process is as follows:
+1.  A user submits a prompt in the frontend UI.
+2.  The frontend sends the request to the backend API.
+3.  The backend creates a generation job, builds a context from template files, and calls the Gemini API.
+4.  The AI returns a set of file modifications as a JSON object.
+5.  The backend applies these modifications to a temporary workspace.
+6.  The frontend polls for the job status and, once complete, fetches and displays the generated files to the user.
+7.  The user can then preview the app in a WebContainer or request further changes from the AI.
+
+## 🛠️ Tech Stack
+
+### Frontend
+-   **Framework**: [Next.js](https://nextjs.org/)
+-   **Language**: [TypeScript](https://www.typescriptlang.org/)
+-   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+-   **UI Components**: [Shadcn UI](https://ui.shadcn.com/), [Framer Motion](https://www.framer.com/motion/)
+-   **State Management**: [Zustand](https://github.com/pmndrs/zustand)
+-   **In-Browser Dev Tools**:
+    -   [WebContainers](https://webcontainers.io/) for live previews.
+    -   [Monaco Editor](https://microsoft.github.io/monaco-editor/) for code editing.
+    -   [Xterm.js](https://xtermjs.org/) for terminal output.
+
+### Backend
+-   **Framework**: [Node.js](https://nodejs.org/) with [Express](https://expressjs.com/)
+-   **Language**: [TypeScript](https://www.typescriptlang.org/)
+-   **Generative AI**: [Google Gemini 2.5 Pro](https://deepmind.google/technologies/gemini/)
+-   **Google Cloud Services**:
+    -   **Firestore**: For managing job status and metadata.
+    -   **Cloud Storage**: For storing generated code artifacts.
+    -   **Cloud Build**: For building container images.
+    -   **Cloud Run**: For serverless deployment.
+
+## ☁️ Deployment to Google Cloud Run
+
+This project is configured for deployment on Google Cloud Run. Both the frontend and backend run as separate, containerized services.
+
+### Prerequisites
+-   [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) installed and authenticated.
+-   A Google Cloud Project with the Cloud Build and Cloud Run APIs enabled.
+-   Docker installed locally (for building images).
+
+### 1. Deploy the Backend
+
+The backend must be deployed first to get its public URL.
+
+1.  **Set your project ID:**
     ```bash
-    git clone <repository_url>
-    cd flames
-    npm install
+    gcloud config set project YOUR_PROJECT_ID
     ```
 
-2.  **Set up Environment:**
-    - Create a `.env` file in the `backend` directory. You will need to populate it with Google Cloud project details and service account credentials.
-
-3.  **Run the Services:**
+2.  **Build the backend container image (run from the project root):**
     ```bash
-    # In one terminal, run the backend
-    npm run dev:backend
-
-    # In another terminal, run the frontend
-    npm run dev:frontend
+    gcloud builds submit . --tag gcr.io/YOUR_PROJECT_ID/flames-backend
     ```
 
-## Structure
+3.  **Deploy to Cloud Run:**
+    ```bash
+    gcloud run deploy flames-backend --image gcr.io/YOUR_PROJECT_ID/flames-backend --platform managed --region us-central1 --allow-unauthenticated --port 8080
+    ```
+    **➡️ Important:** Copy the `Service URL` provided after deployment.
 
-- `/frontend`: The Next.js user interface.
-- `/backend`: The Node.js/Express API for code generation and deployment.
-- `/Dockerfile`: Container definition for the backend service.
-- `/cloudbuild.yaml`: CI/CD pipeline for deploying the backend to Cloud Run.
-- `/ARCHITECTURE.md`: High-level system design.
-- `/BUILD_PLAN.md`: The 10-day development plan.
-- `/DEMO_SCRIPT.md`: Script for a 3-minute product demo.
-- `/SECURITY_CHECKLIST.md`: Essential security hardening steps.
+### 2. Deploy the Frontend
 
-## Packaging an Example App
+Now, deploy the frontend and provide it with the backend's URL.
 
-To manually package one of the generated application templates into a `.tar.gz` artifact (simulating what the backend worker does), you can use the `tar` command.
+1.  **Build the frontend container image (run from the project root):**
+    ```bash
+    gcloud builds submit ./frontend --tag gcr.io/YOUR_PROJECT_ID/flames-frontend
+    ```
 
-This command packages the `simple-blog-express` template into an artifact ready for Cloud Storage.
+2.  **Deploy to Cloud Run, connecting it to the backend:**
+    Replace `BACKEND_SERVICE_URL` with the URL you copied from the backend deployment.
+    ```bash
+    gcloud run deploy flamesbuilder --image gcr.io/YOUR_PROJECT_ID/flames-frontend --platform managed --region us-central1 --allow-unauthenticated --port 3000 --set-env-vars "NEXT_PUBLIC_API_BASE_URL=BACKEND_SERVICE_URL"
+    ```
 
-```bash
-# From the project root
-cd backend/src/templates/simple-blog-express
-tar -czvf ../../../../../simple-blog-artifact.tar.gz .
-```
+After this step, your Flames application will be live!
 
-This will create `simple-blog-artifact.tar.gz` in the root of the Flames project directory.
+---
+<div align="center">
+  <p>Built with 🔥 by abeni</p>
+</div>
