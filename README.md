@@ -1,12 +1,24 @@
 <div align="center">
   <img src="public/images/flames-logo.png" alt="Flames Logo" width="200"/>
-  <h1>🔥 Flames AI</h1>
   <p><b>Your AI-powered partner for building and deploying web applications on the fly.</b></p>
 </div>
 
 ---
 
-Flames is a generative AI application that creates entire web applications from a single prompt. Describe the app you want to build, and watch as Flames writes the code, structures the files, and prepares it for deployment. It features a comprehensive in-browser IDE, including a file explorer, code editor, and live preview, allowing you to iterate and modify your creation with AI assistance.
+Flames is a generative AI application that creates entire web applications from a single prompt. Describe the app 
+you want to build, and watch as Flames writes the code, structures the files, and prepares it for deployment. It 
+features a comprehensive in-browser IDE, including a file explorer, code editor, and live preview, allowing you to 
+iterate and modify your creation with AI assistance.
+
+For a detailed explanation of the project's structure, see the [Architecture Overview](ARCHITECTURE.md).
+
+## Table of Contents
+
+-   [Overview](#overview)
+-   [Key Features](#key-features)
+-   [How It Works](#how-it-works)
+-   [Tech Stack](#tech-stack)
+-   [Deployment](#deployment)
 
 ## ✨ Key Features
 

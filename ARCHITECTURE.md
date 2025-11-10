@@ -8,48 +8,7 @@ Flames is built on a modern, scalable, microservices-style architecture. The fro
 
 ## Architecture Diagrams
 
-### Modern Diagram (Mermaid)
-
 The following diagram illustrates the relationship between the user, the frontend service, the backend service, and the supporting Google Cloud infrastructure. It should render as a graph in most modern Markdown viewers.
-
-```mermaid
-graph TD
-    subgraph User Browser
-        A[Next.js Frontend on Cloud Run]
-    end
-
-    subgraph Backend Services
-        B[Node.js/Express Backend on Cloud Run]
-        C[Google Gemini API]
-    end
-
-    subgraph Google Cloud Platform
-        D[Firestore]
-        E[Cloud Storage]
-    end
-
-    A -- "1. POST /api/v1/generate (User Prompt)" --> B
-    B -- "2. Create Job Document" --> D[Firestore]
-    B -- "3. Build Prompt & Call AI" --> C
-    C -- "4. Return File Modifications" --> B
-    B -- "5. Apply modifications to template files" --> B
-    B -- "6. Update Job Status to 'Generated'" --> D
-
-    A -- "7. Polls /api/v1/job/:id for status" --> B
-    B -- "Reads Job Status" --> D
-    A -- "8. GET /api/v1/job/:id/files (once generated)" --> B
-
-    style A fill:#222,stroke:#3dd,stroke-width:2px
-    style B fill:#222,stroke:#fd3,stroke-width:2px
-    style C fill:#333,stroke:#ccc,stroke-width:1px
-    style D fill:#333,stroke:#ccc,stroke-width:1px
-    style E fill:#333,stroke:#ccc,stroke-width:1px
-```
-
-### Classic Diagram (Text-Based)
-
-<details>
-<summary>Click to view the original text-based diagram</summary>
 
 ```
 +--------------------------------------------------------------------+
@@ -84,7 +43,6 @@ graph TD
 +--------------------------------------------------------------------+
 
 ```
-</details>
 
 ## Component Breakdown
 
