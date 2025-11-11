@@ -48,6 +48,60 @@ The process is as follows:
 6.  The frontend polls for the job status and, once complete, fetches and displays the generated files to the user.
 7.  The user can then preview the app in a WebContainer or request further changes from the AI.
 
+## Architecture
+```
++---------------------------------------------------------------------------------+
+| User Browser                                                                    |
+| +-----------------------------------------------------------------------------+ |
+| | Flames Frontend (Next.js on Cloud Run)                                      | |
+| | - UI Workspace (Editor, Preview, Chat)                                      | |
+| +-----------------------------------------------------------------------------+ |
++------------------|-----------------------------^--------------------------------+
+                   | (REST API Calls)            |
+                   v                             |
++------------------+-----------------------------|---------------------------------+
+| Backend API (Node/Express on Cloud Run)                                         |
+| +-----------------------------------------------------------------------------+ |
+| | Endpoints:                                                                  | |
+| | - /generate -> Triggers Generation Worker                                   | |
+| | - /chat     -> Triggers Intelligent Edit Workflow                           | |
+| | - /deploy   -> Triggers Cloud Build for a specific Job ID                   | |
+| | - /job/*    -> Reads job status and files from Firestore & Temp Storage     | |
+| +-----------------------------------------------------------------------------+ |
++------------------|-----------------------------|--------------------------------+
+                   |                             |
+(Triggers)         v                             v (Triggers)
++------------------+-----------------------------+---------------------------------+
+| Core Logic & Workers (Running on Backend Server)                                |
+| +---------------------------------------------+-------------------------------+ |
+| | Generation Worker                           | Intelligent Edit Workflow     | |
+| | 1. Calls Gemini (Full Generation)           | 1. Reads .flames/index.json   | |
+| | 2. Saves code to /temp_work                 | 2. Gemini: Identify File      | |
+| | 3. Calls Gemini (to create index.json)      | 3. Reads the single file      | |
+| | 4. Saves .flames/index.json                 | 4. Gemini: Generate Changes   | |
+| | 5. Uploads final code to Cloud Storage      | 5. Applies changes locally    | |
+| |                                             | 6. Gemini: Updates index.json | |
+| +---------------------------------------------+-------------------------------+ |
++------------------|-----------------------------|-----------------|---------------+
+(Updates Status)   v                             v (Uploads)       v (Triggers)
++------------------+-------------+---------------+-----------------+---------------+
+| Google Cloud Platform Services                                                  |
+| +----------------+-------------+---------------+-----------------+-------------+ |
+| | Firestore    |               | Cloud Storage |                 | Cloud Build | |
+| | - Job Status |               | - code.tar.gz |                 | - Builds    | |
+| | - Metadata   |               |   Artifacts   |                 |   Container | |
+| +----------------+             +---------------+                 +-------------+ |
+|                                                                        |       | |
+|                                                                        |       | |
+|                                                                        v       | |
+|                                                                +---------------+ |
+|                                                                | Cloud Run     | |
+|                                                                | - Deployed    | |
+|                                                                |   User App    | |
+|                                                                +---------------+ |
++----------------------------------------------------------------------------------+
+```
+
 ## 🛠️ Tech Stack
 
 ### Frontend
