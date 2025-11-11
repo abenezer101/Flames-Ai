@@ -11,37 +11,56 @@ Flames is built on a modern, scalable, microservices-style architecture. The fro
 The following diagram illustrates the relationship between the user, the frontend service, the backend service, and the supporting Google Cloud infrastructure. It should render as a graph in most modern Markdown viewers.
 
 ```
-+--------------------------------------------------------------------+
-| User Browser                                                       |
-| +----------------------------------------------------------------+ |
-| | Frontend (Next.js on Cloud Run or Vercel)                      | |
-| |                                                                | |
-| | [UI Workspace] -> Auth (Google Sign-In)                        | |
-| |   - Prompt, Editor, Code Preview                               | |
-| +----------------------------------------------------------------+ |
-+-----------------|------------------^----------------|--------------+
-                  | (REST API Calls) |                | (OAuth Flow) 
-                  v                  |                v
-+-----------------+------------------|----------------+--------------+
-| Backend API (Node/Express on Cloud Run)                            |
-| +----------------------------------------------------------------+ |
-| | - /generate -> [Generation Worker]                             | |
-| | - /job/:id  -> [Firestore]                                     | |
-| | - /deploy   -> [Cloud Build API]                               | |
-| | - /webhook  <- [Cloud Build]                                   | |
-| +----------------------------------------------------------------+ |
-+-----------------|------------------^----------------|--------------+
-                  |                  |                |
-    (CRUD Jobs)   v                  | (CRUD Projects)| (Trigger/Status)
-+-----------------+------------------|----------------+--------------+
-| Data & Services |                  |                |              |
-| +---------------+  +---------------+  +-------------+  +-----------+ |
-| | Firestore     |  | Cloud Storage |  | Cloud Build |  | Cloud Run | |
-| | - Jobs        |  | - Artifacts   |  | - Build/Push|  | - Deployed| |
-| | - Projects    |  | (.tar.gz)     |  | - Dockerfile|  |   App     | |
-| +---------------+  +---------------+  +-------------+  +-----------+ |
-+--------------------------------------------------------------------+
-
++---------------------------------------------------------------------------------+
+| User Browser                                                                    |
+| +-----------------------------------------------------------------------------+ |
+| | Flames Frontend (Next.js on Cloud Run)                                      | |
+| | - UI Workspace (Editor, Preview, Chat)                                      | |
+| +-----------------------------------------------------------------------------+ |
++------------------|-----------------------------^--------------------------------+
+                   | (REST API Calls)            |
+                   v                             |
++------------------+-----------------------------|---------------------------------+
+| Backend API (Node/Express on Cloud Run)                                         |
+| +-----------------------------------------------------------------------------+ |
+| | Endpoints:                                                                  | |
+| | - /generate -> Triggers Generation Worker                                   | |
+| | - /chat     -> Triggers Intelligent Edit Workflow                           | |
+| | - /deploy   -> Triggers Cloud Build for a specific Job ID                   | |
+| | - /job/*    -> Reads job status and files from Firestore & Temp Storage     | |
+| +-----------------------------------------------------------------------------+ |
++------------------|-----------------------------|--------------------------------+
+                   |                             |
+(Triggers)         v                             v (Triggers)
++------------------+-----------------------------+---------------------------------+
+| Core Logic & Workers (Running on Backend Server)                                |
+| +---------------------------------------------+-------------------------------+ |
+| | Generation Worker                           | Intelligent Edit Workflow     | |
+| | 1. Calls Gemini (Full Generation)           | 1. Reads .flames/index.json   | |
+| | 2. Saves code to /temp_work                 | 2. Gemini: Identify File      | |
+| | 3. Calls Gemini (to create index.json)      | 3. Reads the single file      | |
+| | 4. Saves .flames/index.json                 | 4. Gemini: Generate Changes   | |
+| | 5. Uploads final code to Cloud Storage      | 5. Applies changes locally    | |
+| |                                             | 6. Gemini: Updates index.json | |
+| +---------------------------------------------+-------------------------------+ |
++------------------|-----------------------------|-----------------|---------------+
+(Updates Status)   v                             v (Uploads)       v (Triggers)
++------------------+-------------+---------------+-----------------+---------------+
+| Google Cloud Platform Services                                                  |
+| +----------------+-------------+---------------+-----------------+-------------+ |
+| | Firestore    |               | Cloud Storage |                 | Cloud Build | |
+| | - Job Status |               | - code.tar.gz |                 | - Builds    | |
+| | - Metadata   |               |   Artifacts   |                 |   Container | |
+| +----------------+             +---------------+                 +-------------+ |
+|                                                                        |       | |
+|                                                                        |       | |
+|                                                                        v       | |
+|                                                                +---------------+ |
+|                                                                | Cloud Run     | |
+|                                                                | - Deployed    | |
+|                                                                |   User App    | |
+|                                                                +---------------+ |
++----------------------------------------------------------------------------------+
 ```
 
 ## Component Breakdown
